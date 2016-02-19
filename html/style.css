@@ -43,10 +43,17 @@ input[type=range]:focus {
     outline: none;
 }
 
+#setting_btn {
+	display: block;
+}
+
 #settings {
 	position: absolute;
 	float: left;
 	color: rgb(255,128,0);
+	opacity: 0;
+	transition-property: opacity;
+	transition-duration: .5s;
 }
 
 #settings tr.satellite_label:first-child {

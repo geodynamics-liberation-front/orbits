@@ -3,6 +3,9 @@ var c;
 var ctx;
 var canvasBuffer;
 var buffer;
+var settings;
+var btn;
+var layer;
 
 // Physics Variables
 // Set GM so that the period of an object at 200 is 10 seconds
@@ -72,16 +75,16 @@ function toHex(a)
 	return a>15 ? a.toString(16) : "0"+a.toString(16);
 }
 
-function Satellite()
+function Satellite(r,g,b)
 {
 	this.a=5
 	this._theta=0
 	this._r=0
 	this._omega=0
 	this.theta0=0
-	this.red=Math.floor(255*Math.random())
-	this.green=Math.floor(255*Math.random())
-	this.blue=Math.floor(255*Math.random())
+	this.red=r||Math.floor(255*Math.random())
+	this.green=g||Math.floor(255*Math.random())
+	this.blue=b||Math.floor(255*Math.random())
 	this.x=0
 	this.y=0
 	this.r=Math.floor(c.width/2*Math.random())
@@ -167,9 +170,9 @@ function associate_input(name,variable,listener)
 	}
 }
 
-function new_satellite()
+function new_satellite(r,g,b)
 {
-	var s=new Satellite()
+	var s=new Satellite(r,g,b)
 	satellites.push(s)
 	satellite_table()
 	return false;
@@ -331,9 +334,36 @@ function satellite_table()
 	}
 }
 
+function toggle_settings(e)
+{
+	if (settings.style.opacity=="0")
+	{
+		settings.style.opacity="1"
+		for(var i=0; i<layer.children.length; i++)
+		{
+			layer.children[i].style.fill="777777"
+		}
+	}
+	else
+	{
+		settings.style.opacity="0"
+		for(var i=0; i<layer.children.length; i++)
+		{
+			layer.children[i].style.fill="333333"
+		}
+	}
+}
+
 
 function init()
 {
+	btn=document.getElementById('setting_btn')
+	btn=btn.contentDocument
+	layer=btn.getElementById("layer1")
+	btn.addEventListener("click",toggle_settings)
+	settings=document.getElementById('settings')
+	settings.style.opacity="0"
+
 	c=document.getElementById('paper')
 	ctx=c.getContext('2d')
 
@@ -344,9 +374,18 @@ function init()
 	buffer.translate(c.width/2,c.height/2)
 	buffer.scale(1,-1) 
 
-	new_satellite()
-	new_satellite()
-	new_satellite()
+	var H=360*Math.random()
+	var S=.25*Math.random()+.75
+	var V=.25*Math.random()+.75
+	var sats=3
+	var rgb
+
+	for(var i=0; i<sats; i++)
+	{	
+		rgb=hsv2rgb(H,S,V) 
+		new_satellite(Math.round(255*rgb[0]),Math.round(255*rgb[1]),Math.round(255*rgb[2]))
+		H=(H+360/sats)%360
+	}
 
 	associate_input('G','gravity','setG')
 	associate_input('Run','run','setRun')
