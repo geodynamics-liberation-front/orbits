@@ -1,0 +1,376 @@
+<html>
+<head>
+<script>
+
+COS30=Math.cos(30*Math.PI/180)
+SIN30=Math.sin(30*Math.PI/180)
+
+function line_function(x1,y1,x2,y2)
+{
+	var m=(y1-y2)/(x1-x2)
+	var b=y1-x1*m
+	return function(x) { return m*x+b; }
+}
+
+function addCanvas(w,h,elem,events)
+{
+	var o=new Object()
+	o.canvas=document.createElement('canvas')
+	o.canvas.className='color_picker'
+	o.canvas.width=w
+	o.canvas.height=h
+	o.ctx=o.canvas.getContext('2d')
+	o.id=o.ctx.createImageData(w,h)
+	o.data=o.id.data
+
+	if(events)
+	{
+		for( e in events )
+		{
+			document.addEventListener(e,events[e],true)
+		}
+	}
+	if(elem)
+	{
+		elem.appendChild(o.canvas)
+	}
+	return o
+}
+
+function draw_triangle(ctx,p)
+{
+	ctx.clearRect(0,0,200,200)
+	ctx.strokeStyle="white"
+	ctx.fillStyle="white"
+	ctx.beginPath()
+	ctx.moveTo(cp.v0.x,cp.v0.y)
+	ctx.lineTo(cp.v1.x,cp.v1.y)
+	ctx.lineTo(cp.v2.x,cp.v2.y)
+	ctx.closePath()
+	ctx.stroke()
+	ctx.beginPath()
+	ctx.arc(p.x,p.y,6,0,2*Math.PI)
+	ctx.fill()
+}
+
+function ColorPicker(input)
+{
+	var color_picker=this
+	this.input=input
+	input.style.display="none"
+	this.elem=document.createElement('div')
+	this.input.parentNode.insertBefore(this.elem,input)
+	this._H=0
+	this._S=1
+	this._V=1
+
+	this.radius=100
+	this.outer_radius=100
+	this.inner_radius=80
+	this.delta_radius=this.outer_radius-this.inner_radius
+	this.triangle_height=this.inner_radius*(1+SIN30)
+	this.triangle_base=2*this.inner_radius*COS30
+
+	this.v0={x:this.outer_radius,y:this.outer_radius-this.inner_radius}
+	this.v1={x:this.outer_radius-this.inner_radius*COS30,y:this.outer_radius+this.inner_radius*SIN30}
+	this.v2={x:this.outer_radius+this.inner_radius*COS30,y:this.outer_radius+this.inner_radius*SIN30}
+
+	this.selecting_hue=false;
+	this.selecting_saturation_value=false;
+	
+	this.svCanvas=addCanvas(2*this.radius,2*this.radius,this.elem)
+	this.svBuffer=addCanvas(2*this.radius,2*this.radius)
+	this.hCanvas=addCanvas(2*this.radius,2*this.radius,this.elem)
+	this.canvas=addCanvas(2*this.radius,2*this.radius,this.elem,{
+		mousedown: function(e) {cp.mousedown(e);},
+		mouseup:   function(e) {cp.mouseup(e);},
+		mousemove: function(e) {cp.mousemove(e);},
+		click: function(e) {cp.mousemove(e);}
+	})
+
+	this.line_a=line_function(this.radius,this.radius-this.inner_radius,this.radius-this.inner_radius*COS30,this.radius+this.inner_radius*SIN30)
+	this.line_b=line_function(this.radius,this.radius-this.inner_radius,this.radius+this.inner_radius*COS30,this.radius+this.inner_radius*SIN30)
+	this.draw_hue()
+	this.draw_saturation_value()
+	this.draw_selectors()
+}
+
+function event_xy(e)
+{
+	var cr=this.canvas.canvas.getBoundingClientRect()
+	return {
+		x: e.clientX-cr.left,
+		y: e.clientY-cr.top
+	}
+}
+ColorPicker.prototype.event_xy=event_xy
+
+function mouseup(e)
+{
+	if(this.selecting_hue)
+	{
+		this.selecting_hue=false
+	}
+	else if(this.selecting_saturation_value)
+	{
+		this.selecting_saturation_value=false
+	}
+}
+ColorPicker.prototype.mouseup=mouseup
+
+function mousedown(e)
+{
+	var xy=this.event_xy(e)
+	var rtheta=this.xy2rtheta(xy.x,xy.y)
+	if(this.selecting_hue=(rtheta.r<this.outer_radius && rtheta.r>this.inner_radius))
+	{
+		console.log("H: "+rtheta.theta)
+		this.h=rtheta.theta
+	}
+	else
+	{
+		xy=this.rotate(xy,-(this._H+30)*Math.PI/180)
+		if(xy.y>this.delta_radius+this.triangle_height) { xy.y=this.delta_radius+this.triangle_height }
+		draw_triangle(c0.ctx,xy)
+
+		xy=this.rotate(xy,120*Math.PI/180)
+		if(xy.y>this.delta_radius+this.triangle_height) { xy.y=this.delta_radius+this.triangle_height }
+		draw_triangle(c1.ctx,xy)
+
+		xy=this.rotate(xy,120*Math.PI/180)
+		if(xy.y>this.delta_radius+this.triangle_height) { xy.y=this.delta_radius+this.triangle_height }
+		if(xy.y<this.delta_radius) { xy.y=this.delta_radius; xy.x=this.outer_radius}
+		if(xy.x>this.outer_radius+this.inner_radius*COS30) { xy.y=this.outer_radius+this.inner_radius*SIN30; xy.x=this.outer_radius+this.inner_radius*COS30 }
+		if(xy.x<this.outer_radius-this.inner_radius*COS30) { xy.y=this.outer_radius+this.inner_radius*SIN30; xy.x=this.outer_radius-this.inner_radius*COS30 }
+		draw_triangle(c2.ctx,xy)
+
+		xy=this.rotate(xy,120*Math.PI/180)
+		draw_triangle(c3.ctx,xy)
+
+		this._V=(xy.y-this.delta_radius)/this.triangle_height
+		this._S=(xy.x-this.outer_radius+this.inner_radius*COS30)/this.triangle_base
+		this.draw_selectors()
+	}
+}
+ColorPicker.prototype.mousedown=mousedown
+
+function rotate(p,theta)
+{
+		// rotate anti-clockwise 
+	p={x:p.x-this.radius,y:this.radius-p.y}
+	p={x: p.x*Math.cos(theta)-p.y*Math.sin(theta), y: p.x*Math.sin(theta)+p.y*Math.cos(theta)}
+	return {x:p.x+this.radius,y:this.radius-p.y}
+}
+ColorPicker.prototype.rotate=rotate
+
+function mousemove(e)
+{
+	if( this.selecting_hue)
+	{
+		var xy=this.event_xy(e)
+		this.h=this.xy2rtheta(xy.x,xy.y).theta
+	}
+	if( this.selecting_saturation_value)
+	{
+		var xy=this.event_xy(e)
+		this.s=1-xy.y/(this.radius*(1+SIN30))
+		this.v=(xy.x-this.radius*(1-COS30))/(2*this.radius*COS30)
+	}
+	
+}
+ColorPicker.prototype.mousemove=mousemove
+
+function draw_hue()
+{
+	this.hCanvas.ctx.clearRect(0,0,2*this.radius,2*this.radius)
+	for(var y=0; y<2*this.radius; y++)
+	{
+		for(var x=0; x<2*this.radius; x++)
+		{
+			var rtheta=this.xy2rtheta(x,y)
+			if(rtheta.r<this.outer_radius && rtheta.r>this.inner_radius)
+			{
+				var rgb=hsv2rgb(rtheta.theta,1,1)
+				var offset=(y*2*this.radius+x)*4
+				this.hCanvas.data[offset  ]=rgb[0]*255
+				this.hCanvas.data[offset+1]=rgb[1]*255
+				this.hCanvas.data[offset+2]=rgb[2]*255
+				this.hCanvas.data[offset+3]=255
+			}
+		}
+	}
+	this.hCanvas.ctx.putImageData(this.hCanvas.id,0,0)
+}
+ColorPicker.prototype.draw_hue=draw_hue
+
+Object.defineProperty(ColorPicker.prototype,'h',
+	{enumerable: true, 
+     get: function() { return this._H;}, 
+     set: function(H) { H=H%360; if(H<0) H=H+360; this._H=H; this.draw_saturation_value();this.draw_selectors()} 
+	})
+Object.defineProperty(ColorPicker.prototype,'s',
+	{enumerable: true, 
+     get: function() { return this._S;}, 
+     set: function(S) { this._S=S; this.draw_selectors()} 
+	})
+Object.defineProperty(ColorPicker.prototype,'v',
+	{enumerable: true, 
+     get: function() { return this._V;}, 
+     set: function(V) { this._V=V; this.draw_selectors()} 
+	})
+
+function draw_saturation_value()
+{
+	this.svBuffer.ctx.clearRect(0,0,2*this.radius,2*this.radius)
+	for(var y=0; y<2*this.radius; y++)
+	{
+		for(var x=0; x<2*this.radius; x++)
+		{
+			if( y<this.radius+this.inner_radius*SIN30 && y>this.line_a(x) && y>this.line_b(x) )
+			{
+				var V=y/(this.radius*(1+SIN30))
+				var S=(x-this.radius*(1-COS30))/(2*this.radius*COS30)
+				var rgb=hsv2rgb(this._H,S,V)
+				var offset=(y*2*this.radius+x)*4
+				this.svBuffer.data[offset  ]=rgb[0]*255
+				this.svBuffer.data[offset+1]=rgb[1]*255
+				this.svBuffer.data[offset+2]=rgb[2]*255
+				this.svBuffer.data[offset+3]=255
+			}
+		}
+	}
+	this.svBuffer.ctx.putImageData(this.svBuffer.id,0,0)
+	this.svCanvas.ctx.clearRect(0,0,2*this.radius,2*this.radius)
+	this.svCanvas.ctx.save()
+	this.svCanvas.ctx.translate(this.radius,this.radius)
+	this.svCanvas.ctx.rotate((330-this._H)*Math.PI/180)
+	this.svCanvas.ctx.translate(-this.radius,-this.radius)
+	this.svCanvas.ctx.drawImage(this.svBuffer.canvas,0,0)
+	this.svCanvas.ctx.restore()
+}
+ColorPicker.prototype.draw_saturation_value=draw_saturation_value
+
+function draw_selectors()
+{
+	// Draw the hue
+	console.log("draw_selector")
+	this.canvas.ctx.clearRect(0,0,2*this.radius,2*this.radius)
+	var xp=this.radius+Math.cos(this._H*Math.PI/180)*(this.inner_radius+this.outer_radius)/2
+	var yp=(this.radius-Math.sin(this._H*Math.PI/180)*(this.inner_radius+this.outer_radius)/2)
+	this.canvas.ctx.beginPath()
+	this.canvas.ctx.arc(xp,yp,6,0,2*Math.PI)
+	this.canvas.ctx.lineWidth=2
+	this.canvas.ctx.strokeStyle="#000000"
+	this.canvas.ctx.stroke()
+	this.canvas.ctx.beginPath()
+	this.canvas.ctx.arc(xp,yp,7,0,2*Math.PI)
+	this.canvas.ctx.lineWidth=2
+	this.canvas.ctx.strokeStyle="#ffffff"
+	this.canvas.ctx.stroke()
+
+	console.log("this._V "+this._V)
+	console.log("this._S "+this._S)
+	var p={x:this._S*this.triangle_base+this.outer_radius-this.inner_radius*COS30,y:this._V*this.triangle_height+this.delta_radius}
+	console.log(p)
+	p=this.rotate(p,(this._H+30)*Math.PI/180)
+	console.log("rotated")
+	console.log(p)
+	this.canvas.ctx.save()
+	this.canvas.ctx.beginPath()
+	this.canvas.ctx.arc(p.x,p.y,6,0,2*Math.PI)
+	this.canvas.ctx.lineWidth=2
+	this.canvas.ctx.strokeStyle="#000000"
+	this.canvas.ctx.stroke()
+	this.canvas.ctx.beginPath()
+	this.canvas.ctx.arc(p.x,p.y,7,0,2*Math.PI)
+	this.canvas.ctx.lineWidth=2
+	this.canvas.ctx.strokeStyle="#ffffff"
+	this.canvas.ctx.stroke()
+	this.canvas.ctx.restore()
+}
+ColorPicker.prototype.draw_selectors=draw_selectors
+
+function xy2rtheta(x,y)
+{
+	x=x-this.radius
+	y=y-this.radius
+	y=-y
+	return {
+	theta: 180*Math.atan2(y,x)/Math.PI,
+	r: Math.sqrt(x*x+y*y) }
+}
+ColorPicker.prototype.xy2rtheta=xy2rtheta
+
+function hsv2rgb(H,S,V) 
+{
+	H=H%360
+	if(H<0) H=H+360
+	var C=V*S
+	var Hp=H/60
+	var X=C*(1-Math.abs(Hp%2-1))
+	if(Hp<1)       rgb=[C,X,0]
+	else if(Hp<2)  rgb=[X,C,0]
+	else if(Hp<3)  rgb=[0,C,X]
+	else if(Hp<4)  rgb=[0,X,C]
+	else if(Hp<5)  rgb=[X,0,C]
+	else if(Hp<6)  rgb=[C,0,X]
+	var m=V-C
+	return [rgb[0]+m,rgb[1]+m,rgb[2]+m]
+}
+
+var cp
+var c0=new Object()
+var c1=new Object()
+var c2=new Object()
+
+function init()
+{
+	c0.canvas=document.getElementById('c0')
+	c0.ctx=c0.canvas.getContext('2d')
+	c1.canvas=document.getElementById('c1')
+	c1.ctx=c1.canvas.getContext('2d')
+	c2.canvas=document.getElementById('c2')
+	c2.ctx=c2.canvas.getContext('2d')
+	c3.canvas=document.getElementById('c3')
+	c3.ctx=c3.canvas.getContext('2d')
+
+	var input=document.getElementById('color_picker')
+	cp=new ColorPicker(input)
+}
+
+</script>
+<style>
+body {
+	background-color: black;
+}
+
+
+.color_picker {
+	display: block;
+	padding: 5px;
+}	
+
+canvas.color_picker 
+{
+	position: absolute;
+/*
+	left: 0px;
+	top: 0px;
+*/
+	padding: 0;
+	margin: 0;
+}
+
+</style>
+</head>
+<body onload="init()">
+<input id="color_picker"></input>
+<div style="height: 200px">&nbsp;</div>
+<canvas id="c0" width="200" height="200"></canvas>
+<canvas id="c1" width="200" height="200"></canvas>
+<canvas id="c2" width="200" height="200"></canvas>
+<canvas id="c3" width="200" height="200"></canvas>
+
+</body>
+</html>
+

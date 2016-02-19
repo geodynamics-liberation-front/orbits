@@ -1,0 +1,79 @@
+* {
+	font-family: 'Roboto', sans-serif;
+	font-weight: 300;
+	font-size: 14pt;
+}
+
+body {
+	background-color: black;
+}
+
+input[type=range] {
+  -webkit-appearance: none; 
+  width: 100%; /* Specific width is required for Firefox. */
+}
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+}
+
+input[type=range]::-webkit-slider-runnable-track {
+    height: 5px;
+    background: #eeeeee;
+    border: none;
+    border-radius: 3px;
+}
+input[type=range]::-moz-range-track {
+    height: 5px;
+    background: #ddd;
+    border: none;
+    border-radius: 3px;
+}
+input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    border: 1px solid black;
+    height: 16px;
+    width: 16px;
+    border-radius: 50%;
+    background: #ffffff;
+    margin-top: -5px;
+}
+
+input[type=range]:focus {
+    outline: none;
+}
+
+#settings {
+	position: absolute;
+	float: left;
+	color: rgb(255,128,0);
+}
+
+#settings tr.satellite_label:first-child {
+	padding-top: 20px;
+}
+
+#settings tr.satellite_label > td:first-child {
+	font-weight: 500;
+	text-align: left;
+}
+
+#settings tr > td:first-child {
+	color: #777777;
+	text-align: right;
+}
+
+a{
+	text-decoration: none;
+	color: rgb(255,255,255);
+	font-weight: 400;
+}
+
+a:visited{
+	color: rgb(255,255,255);
+}
+	
+#paper {
+	display: block;
+	margin: auto;
+}
