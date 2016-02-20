@@ -19,6 +19,7 @@ var l0
 var satellites=[]
 var draw_lines=true
 var line_history=true
+var line_frequency=30
 var line_history_fade=true
 var max_lines=300
 var lines=new Collection(max_lines)
@@ -185,13 +186,6 @@ function remove_satellite(n)
 	return false;
 }
 
-function transform()
-{
-	ctx.save()
-	ctx.translate(c.width/2,c.height/2)
-	ctx.scale(1,-1) 
-}
-
 function v(r)
 {
 	return Math.sqrt(GM/r)
@@ -216,23 +210,24 @@ function updateSatelliteRadius()
 function paint(t)
 {
 	var deltaT=(t-t0)/1000	
-	var record_line=((t-l0)/1000>.1)
+	var record_line=((t-l0)/1000>(1/line_frequency))
+	var line,satStart,satEnd,grad,i,j,s
 	if(record_line) l0=t
 	t0=t
 
 	buffer.clearRect(-c.width/2,-c.height/2,c.width,c.height)	
 	if( draw_lines && line_history )
 	{
-		for( var i=0; i<lines.length; i++ ) 
+		for( i=0; i<lines.length; i++ ) 
 		{
 			alpha = line_history_fade ? i/lines.length : 1.0
 			if(alpha>0.01)
 			{
-				var line=lines.items[i];
-				var satStart=line[1]
-				var satEnd=line[2]
+				line=lines.items[i];
+				satStart=line[1]
+				satEnd=line[2]
 				line=line[0]
-				var grad=buffer.createLinearGradient(line[0],line[1],line[2],line[3])
+				grad=buffer.createLinearGradient(line[0],line[1],line[2],line[3])
 				grad.addColorStop(0,satStart.rgba(alpha))
 				grad.addColorStop(1,satEnd.rgba(alpha))
 				buffer.beginPath()
@@ -244,19 +239,22 @@ function paint(t)
 		}
 	}
 
-	for( var i=0; i<satellites.length; i++ )
+	for( i=0; i<satellites.length; i++ )
 	{
-		var s=satellites[i]
+		s=satellites[i]
 		s.theta=s.theta+s.omega*deltaT
-		for( var j=0; j<satellites.length; j++)
+	}
+	for( i=0; i<satellites.length; i++ )
+	{
+		s=satellites[i]
+		for( j=0; j<satellites.length; j++)
 		{
-			var line=[satellites[i].x,satellites[i].y,satellites[j].x,satellites[j].y]
-			var grad=buffer.createLinearGradient(satellites[i].x,satellites[i].y,satellites[j].x,satellites[j].y);
-			grad.addColorStop(0,satellites[i].rgb())
-			grad.addColorStop(1,satellites[j].rgb())
-
+			line=[satellites[i].x,satellites[i].y,satellites[j].x,satellites[j].y]
 			if(draw_lines)
 			{
+				grad=buffer.createLinearGradient(satellites[i].x,satellites[i].y,satellites[j].x,satellites[j].y);
+				grad.addColorStop(0,satellites[i].rgb())
+				grad.addColorStop(1,satellites[j].rgb())
 				buffer.beginPath()
 				buffer.moveTo(satellites[i].x,satellites[i].y)
 				buffer.lineTo(satellites[j].x,satellites[j].y)
@@ -269,7 +267,6 @@ function paint(t)
 			} 
 		}
 
-		var s=satellites[i]
 		buffer.beginPath()
 		buffer.arc(s.x,s.y,s.a,0,twopi)
 		buffer.fillStyle=s.rgb()
@@ -286,28 +283,29 @@ function paint(t)
 function satellite_table()
 {
 	var t=document.getElementById("satellite_table")
+	var i,s,r,tdLabel,a,tdValue,input,cp
 	t.innerHTML=''
-	for( var i=0; i<satellites.length; i++ )
+	for(  i=0; i<satellites.length; i++ )
 	{
-		var s=satellites[i]
+		s=satellites[i]
 
-		var r=document.createElement('tr')
+		r=document.createElement('tr')
 		r.className='satellite_label'
 		t.appendChild(r)
-		var tdLabel=document.createElement('td')
+		tdLabel=document.createElement('td')
 		tdLabel.innerHTML="Satellite #"+i+" "
-		var a=document.createElement('a')
+		a=document.createElement('a')
 		a.innerHTML="[ - ]"
 		a.href="#"
 		a.addEventListener("click",new Function("remove_satellite("+i+"); return false;"))
 		tdLabel.appendChild(a)
 		
-		var tdValue=document.createElement('td')
-		var input=document.createElement('input')
+		tdValue=document.createElement('td')
+		input=document.createElement('input')
 		input.type='color'
 		input.value=s.hex()
 		tdValue.appendChild(input)
-		var cp=new ColorPicker(input,50,10)
+		cp=new ColorPicker(input,50,10)
 		cp.addEventListener("change",function() { this.satellite.color=this.value })
 		s.color_input=cp
 		cp.satellite=s
@@ -355,7 +353,7 @@ function toggle_settings(e)
 }
 
 
-function init()
+function init(sats)
 {
 	btn=document.getElementById('setting_btn')
 	btn=btn.contentDocument
@@ -377,8 +375,9 @@ function init()
 	var H=360*Math.random()
 	var S=.25*Math.random()+.75
 	var V=.25*Math.random()+.75
-	var sats=3
 	var rgb
+	
+	sats=sats||3
 
 	for(var i=0; i<sats; i++)
 	{	
@@ -386,15 +385,16 @@ function init()
 		new_satellite(Math.round(255*rgb[0]),Math.round(255*rgb[1]),Math.round(255*rgb[2]))
 		H=(H+360/sats)%360
 	}
+	
+	satellite_table()
 
 	associate_input('G','gravity','setG')
 	associate_input('Run','run','setRun')
 	associate_input('Lines','max_lines','setMaxLines')
 	associate_input('LineHistory','line_history')
+	associate_input('LineFrequency','line_frequency')
 	associate_input('LineHistoryFade','line_history_fade')
 	associate_input('DrawLines','draw_lines')
-
-	satellite_table()
 
 	t0=performance.now()
 	l0=performance.now()
