@@ -339,7 +339,7 @@ function toggle_settings(e)
 		settings.style.opacity="1"
 		for(var i=0; i<layer.children.length; i++)
 		{
-			layer.children[i].style.fill="777777"
+			layer.children[i].style.fill="rgb(120,120,120)"
 		}
 	}
 	else
@@ -347,7 +347,7 @@ function toggle_settings(e)
 		settings.style.opacity="0"
 		for(var i=0; i<layer.children.length; i++)
 		{
-			layer.children[i].style.fill="333333"
+			layer.children[i].style.fill="rgb(50,50,50)"
 		}
 	}
 }
