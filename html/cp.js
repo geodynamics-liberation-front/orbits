@@ -200,7 +200,7 @@ Object.defineProperty(ColorPicker.prototype,'value',
 		this.draw_swatch()} 
 	})
 
-function addEventListener(e,f)
+function ael(e,f)
 {
 	if( !(e in this._listeners ))
 	{
@@ -208,7 +208,7 @@ function addEventListener(e,f)
 	}
 	this._listeners[e].push(f)
 }
-ColorPicker.prototype.addEventListener=addEventListener
+ColorPicker.prototype.addEventListener=ael
 
 function broadcastEvent(e)
 {
