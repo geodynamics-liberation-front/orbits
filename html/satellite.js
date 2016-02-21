@@ -4,6 +4,7 @@ var ctx;
 var canvasBuffer;
 var buffer;
 var settings;
+var settings_table;
 var btn;
 var layer;
 
@@ -19,11 +20,13 @@ var l0
 var satellites=[]
 var draw_lines=true
 var line_history=true
-var line_frequency=30
+var line_frequency=10
 var line_history_fade=true
 var max_lines=300
 var lines=new Collection(max_lines)
 var run=true
+var max_radius=250
+var show_settings=false;
 
 function setG()
 {
@@ -88,7 +91,7 @@ function Satellite(r,g,b)
 	this.blue=b||Math.floor(255*Math.random())
 	this.x=0
 	this.y=0
-	this.r=Math.floor(c.width/2*Math.random())
+	this.r=Math.floor(max_radius*(.8*Math.random()+.1))
 } 
 
 Object.defineProperty(Satellite.prototype,'theta',
@@ -176,14 +179,15 @@ function new_satellite(r,g,b)
 	var s=new Satellite(r,g,b)
 	satellites.push(s)
 	satellite_table()
-	return false;
+	return s;
 }
 
 function remove_satellite(n)
 {
+	var s=satellites[n]
 	satellites.splice(n,1)
 	satellite_table()
-	return false;
+	return s;
 }
 
 function v(r)
@@ -297,7 +301,7 @@ function satellite_table()
 		a=document.createElement('a')
 		a.innerHTML="[ - ]"
 		a.href="#"
-		a.addEventListener("click",new Function("remove_satellite("+i+"); return false;"))
+		a.addEventListener("click",new Function(['e'],"remove_satellite("+i+"); e.preventDefault(); return false;"))
 		tdLabel.appendChild(a)
 		
 		tdValue=document.createElement('td')
@@ -322,7 +326,7 @@ function satellite_table()
 		s.radius_input=input
 		input.type='range'
 		input.min='10'
-		input.max='250'
+		input.max=max_radius
 		input.value=s.r
 		input.addEventListener("change",updateSatelliteRadius)
 		input.addEventListener("input",updateSatelliteRadius)
@@ -332,23 +336,49 @@ function satellite_table()
 	}
 }
 
+function resize_canvas()
+{
+	c.width=window.innerWidth
+	c.height=window.innerHeight
+	canvasBuffer.width=window.innerWidth
+	canvasBuffer.height=window.innerHeight
+
+	buffer.restore()
+	buffer.save()
+	buffer.translate(c.width/2,c.height/2)
+	buffer.scale(1,-1) 
+
+	if(!run) window.requestAnimationFrame(paint)
+
+	max_radius=Math.min(c.width,c.height)/2
+	satellite_table()
+}
+
 function toggle_settings(e)
 {
-	if (settings.style.opacity=="0")
+	show_settings=!show_settings	
+	if( show_settings )
 	{
-		settings.style.opacity="1"
-		for(var i=0; i<layer.children.length; i++)
-		{
-			layer.children[i].style.fill="rgb(120,120,120)"
-		}
+		settings.style.height="auto"
+		setTimeout(function() { settings.style.overflow="visible" },550 )
 	}
 	else
 	{
-		settings.style.opacity="0"
-		for(var i=0; i<layer.children.length; i++)
+		for( var i=0; i<satellites.length; i++ )
 		{
-			layer.children[i].style.fill="rgb(50,50,50)"
+			satellites[i].color_input.revert_color()
 		}
+		settings.style.overflow="hidden"
+		
+		setTimeout(function() { settings.style.height="0" },550 )
+	}
+	settings_table.style.transform=show_settings?"translate(0,0)":"translate(0,-100%)"
+	var fill=show_settings?"rgb(120,120,120)":"rgb(50,50,50)"
+	var elem=layer.firstElementChild
+	while(elem!=null)
+	{
+		elem.style.fill=fill
+		elem=elem.nextElementSibling
 	}
 }
 
@@ -360,7 +390,9 @@ function init(sats)
 	layer=btn.getElementById("layer1")
 	btn.addEventListener("click",toggle_settings)
 	settings=document.getElementById('settings')
-	settings.style.opacity="0"
+	settings_table=document.getElementById('settings_table')
+
+	document.getElementById('add_satellite').addEventListener('click',function(e) {new_satellite(); e.preventDefault(); return false;})
 
 	c=document.getElementById('paper')
 	ctx=c.getContext('2d')
@@ -369,6 +401,7 @@ function init(sats)
 	canvasBuffer.width=c.width
 	canvasBuffer.height=c.height
 	buffer=canvasBuffer.getContext('2d')
+	buffer.save()
 	buffer.translate(c.width/2,c.height/2)
 	buffer.scale(1,-1) 
 
@@ -396,7 +429,10 @@ function init(sats)
 	associate_input('LineHistoryFade','line_history_fade')
 	associate_input('DrawLines','draw_lines')
 
+	window.addEventListener('resize',resize_canvas)
+
 	t0=performance.now()
 	l0=performance.now()
-	window.requestAnimationFrame(paint);
+	resize_canvas()
+	window.requestAnimationFrame(paint)
 }
