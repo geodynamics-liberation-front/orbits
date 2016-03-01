@@ -213,75 +213,77 @@ function updateSatelliteRadius()
 
 function paint(t)
 {
-	var deltaT=(t-t0)/1000	
-	var record_line=((t-l0)/1000>(1/line_frequency))
-	var line,satStart,satEnd,grad,i,j,s
-	if(record_line) l0=t
-	t0=t
-
-	buffer.clearRect(-c.width/2,-c.height/2,c.width,c.height)	
-	if( draw_lines && line_history )
+	if( run )
 	{
-		for( i=0; i<lines.length; i++ ) 
+		var deltaT=(t-t0)/1000	
+		var record_line=((t-l0)/1000>(1/line_frequency))
+		var line,satStart,satEnd,grad,i,j,s
+		if(record_line) l0=t
+		t0=t
+
+		buffer.clearRect(-c.width/2,-c.height/2,c.width,c.height)	
+		if( draw_lines && line_history )
 		{
-			alpha = line_history_fade ? i/lines.length : 1.0
-			if(alpha>0.01)
+			for( i=0; i<lines.length; i++ ) 
 			{
-				line=lines.items[i];
-				satStart=line[1]
-				satEnd=line[2]
-				line=line[0]
-				grad=buffer.createLinearGradient(line[0],line[1],line[2],line[3])
-				grad.addColorStop(0,satStart.rgba(alpha))
-				grad.addColorStop(1,satEnd.rgba(alpha))
-				buffer.beginPath()
-				buffer.moveTo(line[0],line[1])
-				buffer.lineTo(line[2],line[3])
-				buffer.strokeStyle=grad
-				buffer.stroke()
+				alpha = line_history_fade ? i/lines.length : 1.0
+				if(alpha>0.01)
+				{
+					line=lines.items[i];
+					satStart=line[1]
+					satEnd=line[2]
+					line=line[0]
+					grad=buffer.createLinearGradient(line[0],line[1],line[2],line[3])
+					grad.addColorStop(0,satStart.rgba(alpha))
+					grad.addColorStop(1,satEnd.rgba(alpha))
+					buffer.beginPath()
+					buffer.moveTo(line[0],line[1])
+					buffer.lineTo(line[2],line[3])
+					buffer.strokeStyle=grad
+					buffer.stroke()
+				}
 			}
 		}
-	}
 
-	for( i=0; i<satellites.length; i++ )
-	{
-		s=satellites[i]
-		s.theta=s.theta+s.omega*deltaT
-	}
-	for( i=0; i<satellites.length; i++ )
-	{
-		s=satellites[i]
-		for( j=0; j<satellites.length; j++)
+		for( i=0; i<satellites.length; i++ )
 		{
-			line=[satellites[i].x,satellites[i].y,satellites[j].x,satellites[j].y]
-			if(draw_lines)
-			{
-				grad=buffer.createLinearGradient(satellites[i].x,satellites[i].y,satellites[j].x,satellites[j].y);
-				grad.addColorStop(0,satellites[i].rgb())
-				grad.addColorStop(1,satellites[j].rgb())
-				buffer.beginPath()
-				buffer.moveTo(satellites[i].x,satellites[i].y)
-				buffer.lineTo(satellites[j].x,satellites[j].y)
-				buffer.strokeStyle=grad
-				buffer.stroke()
-			}
-			if(record_line)
-			{
-				lines.push([line,satellites[i],satellites[j]])
-			} 
+			s=satellites[i]
+			s.theta=s.theta+s.omega*deltaT
 		}
+		for( i=0; i<satellites.length; i++ )
+		{
+			s=satellites[i]
+			for( j=0; j<satellites.length; j++)
+			{
+				line=[satellites[i].x,satellites[i].y,satellites[j].x,satellites[j].y]
+				if(draw_lines)
+				{
+					grad=buffer.createLinearGradient(satellites[i].x,satellites[i].y,satellites[j].x,satellites[j].y);
+					grad.addColorStop(0,satellites[i].rgb())
+					grad.addColorStop(1,satellites[j].rgb())
+					buffer.beginPath()
+					buffer.moveTo(satellites[i].x,satellites[i].y)
+					buffer.lineTo(satellites[j].x,satellites[j].y)
+					buffer.strokeStyle=grad
+					buffer.stroke()
+				}
+				if(record_line)
+				{
+					lines.push([line,satellites[i],satellites[j]])
+				} 
+			}
 
-		buffer.beginPath()
-		buffer.arc(s.x,s.y,s.a,0,twopi)
-		buffer.fillStyle=s.rgb()
-		buffer.strokeStyle="#000000"
-		buffer.fill()
-		buffer.stroke()
+			buffer.beginPath()
+			buffer.arc(s.x,s.y,s.a,0,twopi)
+			buffer.fillStyle=s.rgb()
+			buffer.strokeStyle="#000000"
+			buffer.fill()
+			buffer.stroke()
+		}
+		ctx.clearRect(0,0,c.width,c.height)	
+		ctx.drawImage(canvasBuffer,0,0)
+		window.requestAnimationFrame(paint)
 	}
-	ctx.clearRect(0,0,c.width,c.height)	
-	ctx.drawImage(canvasBuffer,0,0)
-
-	if(run) window.requestAnimationFrame(paint)
 }
 
 function satellite_table()
@@ -382,9 +384,18 @@ function toggle_settings(e)
 	}
 }
 
+function visibilityChange(e)
+{
+	run=!document['hidden']
+	document.getElementById('Run').checked=run
+	setRun()
+}
+
 
 function init(sats)
 {
+	document.addEventListener("visibilitychange", visibilityChange);
+
 	btn=document.getElementById('setting_btn')
 	btn=btn.contentDocument
 	layer=btn.getElementById("layer1")
