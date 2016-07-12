@@ -46,6 +46,7 @@ input[type=range]:focus {
 }
 
 #setting_btn {
+	padding: 10px;
 	display: block;
 }
 

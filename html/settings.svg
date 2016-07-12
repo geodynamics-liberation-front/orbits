@@ -24,6 +24,19 @@
       </cc:Work>
     </rdf:RDF>
   </metadata>
+  <script id="script" type="text/ecmascript"><![CDATA[
+function setColor(c)
+{
+	var layer=document.getElementById("layer1")
+	var elem=layer.firstElementChild
+	while(elem!=null)
+	{
+		elem.style.fill=c
+		elem=elem.nextElementSibling
+	}
+}
+
+  ]]></script>
   <g
 	class="settings"
      transform="translate(0,-952.36223)"
